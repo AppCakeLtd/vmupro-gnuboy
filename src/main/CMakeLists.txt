@@ -1,5 +1,4 @@
 idf_component_register(
-  INCLUDE_DIRS "includes"
   SRC_DIRS "." "gnuboy"
   PRIV_INCLUDE_DIRS "gnuboy"
   )
