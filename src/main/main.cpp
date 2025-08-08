@@ -404,7 +404,7 @@ void app_main(void) {
   gnuboy_reset(true);
 
   char sramfile[512];
-  sprintf(sramfile, "/sdcard/roms/GameBoy/%s.sram", launchfile);
+  vmupro_snprintf(sramfile, 512, "/sdcard/roms/GameBoy/%s.sram", launchfile);
   if (vmupro_file_exists(sramfile)) {
     gnuboy_load_sram(sramfile);
   }
