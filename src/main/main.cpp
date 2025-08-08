@@ -331,6 +331,21 @@ void Exit() {
   gnuboy_free_rom();
   gnuboy_free_mem();
   gnuboy_free_bios();
+
+  if (gbc_audio_buffer) {
+    free((void *)gbc_audio_buffer);
+    gbc_audio_buffer = nullptr;
+  }
+
+  if (pauseBuffer) {
+    free(pauseBuffer);
+    pauseBuffer = nullptr;
+  }
+
+  if (launchfile) {
+    free(launchfile);
+    launchfile = nullptr;
+  }
 }
 
 void audio_callback(void *buffer, size_t length) {
@@ -388,11 +403,11 @@ void app_main(void) {
 
   gnuboy_reset(true);
 
-  // char sramfile[MAX_PATH_LEN];
-  // sprintf(sramfile, "/sdcard/roms/%s/%s.sram", consolePathName, launchfile);
-  // if (SDFS::checkFileExists(sramfile)) {
-  //   gnuboy_load_sram(sramfile);
-  // }
+  char sramfile[512];
+  sprintf(sramfile, "/sdcard/roms/GameBoy/%s.sram", launchfile);
+  if (vmupro_file_exists(sramfile)) {
+    gnuboy_load_sram(sramfile);
+  }
 
   vmupro_audio_start_listen_mode();
 
