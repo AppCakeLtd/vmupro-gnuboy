@@ -5,7 +5,6 @@
 #include "cpu.h"
 #include "sound.h"
 #include "lcd.h"
-#include "esp_heap_caps.h"
 
 #define hw GB
 
@@ -165,7 +164,7 @@ int gnuboy_load_bios_file(const char *file) {
 void gnuboy_load_bank(int bank) {
   const size_t OFFSET = bank * BANK_SIZE;
 
-  if (!gbcart.rombanks[bank]) gbcart.rombanks[bank] = heap_caps_malloc(BANK_SIZE, MALLOC_CAP_SPIRAM);
+  if (!gbcart.rombanks[bank]) gbcart.rombanks[bank] = malloc(BANK_SIZE);
 
   if (!gbcart.romFile) return;
 
@@ -697,7 +696,7 @@ static int do_save_load(const char *file, bool save) {
   byte *buf = calloc(1, 4096);
   if (!buf) return -2;
 
-  uint32_t(*header)[2] = (uint32_t(*)[2])buf;
+  uint32_t (*header)[2] = (uint32_t (*)[2])buf;
 
   sblock_t blocks[] = {
       {buf, 1},

@@ -13,7 +13,7 @@ extern "C" {
 #define LOG_PRINTF(level, x...) rg_system_log(RG_LOG_PRINTF, NULL, x)
 #else
 #define LOG_PRINTF(level, x...) printf(x)
-#define IRAM_ATTR
+// #define IRAM_ATTR
 #endif
 
 #define MESSAGE_ERROR(x, ...) LOG_PRINTF(1, "!! %s: " x, __func__, ##__VA_ARGS__)
@@ -21,7 +21,8 @@ extern "C" {
 #define MESSAGE_INFO(x, ...) LOG_PRINTF(3, " * %s: " x, __func__, ##__VA_ARGS__)
 // #define MESSAGE_DEBUG(x, ...) LOG_PRINTF(4, ">> %s: " x, __func__, ## __VA_ARGS__)
 #define MESSAGE_DEBUG(x, ...) \
-  {}
+  {                           \
+  }
 
 #define GB_WIDTH (160)
 #define GB_HEIGHT (144)
@@ -85,6 +86,11 @@ typedef enum {
   GB_PALETTE_SGB,
   GB_PALETTE_COUNT,
 } gb_palette_t;
+
+static const char *PaletteNames[] = {"GB0",  "GB1",  "GB2",  "GB3",  "GB4",  "GB5",  "GB6",  "GB7",  "GB8",  "GB9",
+                                     "GB10", "GB11", "GB12", "GB13", "GB14", "GB15", "GB16", "GB17", "GB18", "GB19",
+                                     "GB20", "GB21", "GB22", "GB23", "GB24", "GB25", "GB26", "GB27", "GB28", "GB29",
+                                     "GB30", "GB31", "DMG",  "MGB0", "MGB1", "CGB",  "SGB"};
 
 typedef enum { GB_PIXEL_PALETTED, GB_PIXEL_565_LE, GB_PIXEL_565_BE, GB_PIXEL_PALETTED_BE } gb_video_fmt_t;
 

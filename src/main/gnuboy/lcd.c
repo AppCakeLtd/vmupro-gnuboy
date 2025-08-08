@@ -97,7 +97,7 @@ static inline void tilebuf(int S, int T, int WT, int *WND, int *BG) {
       }
     else
       for (int i = cnt; i > 0; i--) {
-        *(tilebuf++) = (0x100 + ((int8_t) * (tilemap++)));
+        *(tilebuf++) = (0x100 + ((int8_t)*(tilemap++)));
         tilemap += *(wrap++);
       }
   }
@@ -120,8 +120,7 @@ static inline void tilebuf(int S, int T, int WT, int *WND, int *BG) {
       }
     else
       for (int i = cnt; i > 0; i--) {
-        *(tilebuf++) =
-            (0x100 + ((int8_t) * (tilemap++))) | (((int)*attrmap & 0x08) << 6) | (((int)*attrmap & 0x60) << 5);
+        *(tilebuf++) = (0x100 + ((int8_t)*(tilemap++))) | (((int)*attrmap & 0x08) << 6) | (((int)*attrmap & 0x60) << 5);
         *(tilebuf++) = (((int)*(attrmap++) & 0x7) << 2);
       }
   }
@@ -129,7 +128,7 @@ static inline void tilebuf(int S, int T, int WT, int *WND, int *BG) {
     if (R_LCDC & 0x10)
       for (int i = cnt; i > 0; i--) *(tilebuf++) = *(tilemap++);
     else
-      for (int i = cnt; i > 0; i--) *(tilebuf++) = (0x100 + ((int8_t) * (tilemap++)));
+      for (int i = cnt; i > 0; i--) *(tilebuf++) = (0x100 + ((int8_t)*(tilemap++)));
   }
 }
 

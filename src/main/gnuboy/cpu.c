@@ -47,9 +47,13 @@ typedef int8_t n8;
   }
 
 #define INCW(r) \
-  { r++; }
+  {             \
+    r++;        \
+  }
 #define DECW(r) \
-  { r--; }
+  {             \
+    r--;        \
+  }
 
 #define ADD(n)                                                                      \
   {                                                                                 \
@@ -178,10 +182,14 @@ typedef int8_t n8;
     F |= (FH | FN); \
   }
 
-#define SCF \
-  { F = (F & (FZ)) | FC; }
-#define CCF \
-  { F = (F & (FZ | FC)) ^ FC; }
+#define SCF              \
+  {                      \
+    F = (F & (FZ)) | FC; \
+  }
+#define CCF                   \
+  {                           \
+    F = (F & (FZ | FC)) ^ FC; \
+  }
 
 #define SWAP(r)                                \
   {                                            \
@@ -189,12 +197,18 @@ typedef int8_t n8;
     F = ZFLAG(r);                              \
   }
 
-#define BIT(n, r) \
-  { F = (F & FC) | ZFLAG((r & (1 << (n)))) | FH; }
-#define RES(n, r) \
-  { r &= ~(1 << (n)); }
-#define SET(n, r) \
-  { r |= (1 << (n)); }
+#define BIT(n, r)                                \
+  {                                              \
+    F = (F & FC) | ZFLAG((r & (1 << (n)))) | FH; \
+  }
+#define RES(n, r)     \
+  {                   \
+    r &= ~(1 << (n)); \
+  }
+#define SET(n, r)    \
+  {                  \
+    r |= (1 << (n)); \
+  }
 
 #define JR (PC += 1 + (n8)readb(PC))
 #define JP (PC = readw(PC))
@@ -430,7 +444,7 @@ static inline int exec_cb(void) {
   Might emulate up to cycles+(11) time units (longest op takes 12
   cycles in single-speed mode)
 */
-IRAM_ATTR int gb_cpu_emulate(int cycles) {
+int gb_cpu_emulate(int cycles) {
   int clen, temp;
   int remaining = cycles;
   int count     = 0;
