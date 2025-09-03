@@ -168,8 +168,9 @@ void Tick() {
         // Get the selection index. What are we supposed to do?
         if (gbContextSelectionIndex == 0) {
           vmupro_resume_double_buffer_renderer();
-          // Save in both cases
-          // savaStateHandler((const char *)launchfile);
+          char filepath[512];
+          vmupro_snprintf(filepath, 512, "/sdcard/roms/GameBoy/%sstate", launchfile);
+          gnuboy_save_state(filepath);
 
           // Close the modal
           reset_frame_time();
@@ -179,7 +180,17 @@ void Tick() {
         }
         else if (gbContextSelectionIndex == 1) {
           vmupro_resume_double_buffer_renderer();
-          // loadStateHandler((const char *)launchfile);
+          char filepath[512];
+          vmupro_snprintf(filepath, 512, "/sdcard/roms/GameBoy/%sstate", launchfile);
+          if (gnuboy_load_state(filepath) != 0) {
+            gnuboy_reset(true);
+
+            char sramfile[512];
+            vmupro_snprintf(sramfile, 512, "/sdcard/roms/GameBoy/%s.sram", launchfile);
+            if (vmupro_file_exists(sramfile)) {
+              gnuboy_load_sram(sramfile);
+            }
+          }
 
           // Close the modal
           reset_frame_time();
@@ -243,6 +254,14 @@ void Tick() {
             vmupro_set_global_volume(newVolume);
           } break;
           case MENU_OPTION_PALETTE:
+            if (vmupro_btn_pressed(DPad_Right)) {
+              gbCurrentPaletteIndex =
+                  gbCurrentPaletteIndex < GB_PALETTE_COUNT - 1 ? gbCurrentPaletteIndex + 1 : GB_PALETTE_COUNT - 1;
+            }
+            else {
+              gbCurrentPaletteIndex = gbCurrentPaletteIndex > 0 ? gbCurrentPaletteIndex - 1 : 0;
+            }
+            gnuboy_set_palette((gb_palette_t)gbCurrentPaletteIndex);
             break;
           default:
             break;
@@ -328,6 +347,11 @@ void Tick() {
 }
 
 void Exit() {
+  // Save SRAM on exit
+  char sramfile[512];
+  vmupro_snprintf(sramfile, 512, "/sdcard/roms/GameBoy/%s.sram", launchfile);
+  gnuboy_save_sram(sramfile, false);
+
   gnuboy_free_rom();
   gnuboy_free_mem();
   gnuboy_free_bios();
@@ -398,6 +422,7 @@ void app_main(void) {
 
   gnuboy_load_rom_file(launchPath);
   gnuboy_set_palette(GB_PALETTE_DMG);
+  gbCurrentPaletteIndex = GB_PALETTE_DMG;
 
   gnuboy_set_video_params(0, 12, 1);
 
