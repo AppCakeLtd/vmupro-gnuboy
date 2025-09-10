@@ -15,6 +15,7 @@ typedef enum ContextMenuEntryType {
   MENU_OPTION_PALETTE,
   MENU_OPTION_SCALING,
   MENU_OPTION_STATE_SLOT,
+  MENU_OPTION_BUTTON_SWAP,
   MENU_OPTION_NONE
 };
 
@@ -37,7 +38,7 @@ const ContextMenuEntry emuContextOptionEntries[5] = {
     {.title = "Brightness", .enabled = true, .type = MENU_OPTION_BRIGHTNESS},
     {.title = "Palette", .enabled = true, .type = MENU_OPTION_PALETTE},
     {.title = "State Slot", .enabled = true, .type = MENU_OPTION_STATE_SLOT},
-    {.title = "", .enabled = false, .type = MENU_OPTION_NONE},
+    {.title = "Swap A+B", .enabled = true, .type = MENU_OPTION_BUTTON_SWAP},
 };
 
 static EmulatorMenuState currentEmulatorState = EmulatorMenuState::EMULATOR_RUNNING;
@@ -58,8 +59,8 @@ static uint64_t frame_time_min     = 0.0f;
 static float frame_time_avg        = 0.0f;
 
 static bool inOptionsMenu = false;
-
-static bool emuRunning = true;
+static bool swapButtons   = false;
+static bool emuRunning    = true;
 
 static void update_frame_time(uint64_t ftime) {
   num_frames++;
@@ -136,6 +137,12 @@ void Tick() {
                   PaletteNames[gbCurrentPaletteIndex], 190 - tlen - 5, startY + (x * 22), fgColor, bgColor
               );
             } break;
+            case MENU_OPTION_BUTTON_SWAP: {
+              char swapTextState[5] = "Yes";
+              vmupro_snprintf(swapTextState, 6, "%s", (swapButtons ? "Yes" : "No"));
+              int tlen = vmupro_calc_text_length(swapTextState);
+              vmupro_draw_text(swapTextState, 190 - tlen - 5, startY + (x * 22), fgColor, bgColor);
+            }
             default:
               break;
           }
@@ -276,8 +283,8 @@ void Tick() {
       pad |= vmupro_btn_held(DPad_Left) ? GB_PAD_LEFT : 0;
       pad |= vmupro_btn_held(Btn_Power) ? GB_PAD_SELECT : 0;
       pad |= vmupro_btn_held(Btn_Mode) ? GB_PAD_START : 0;
-      pad |= vmupro_btn_held(Btn_A) ? GB_PAD_A : 0;
-      pad |= vmupro_btn_held(Btn_B) ? GB_PAD_B : 0;
+      pad |= vmupro_btn_held(Btn_A) ? (swapButtons ? GB_PAD_B : GB_PAD_A) : 0;
+      pad |= vmupro_btn_held(Btn_B) ? (swapButtons ? GB_PAD_A : GB_PAD_B) : 0;
 
       if (pad != padold) {
         gnuboy_set_pad(pad);  // costly call apparently tbc
