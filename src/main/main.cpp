@@ -5,6 +5,7 @@
 
 static const char *kLogGBCEmu = "[GNUBOY]";
 static char *launchfile       = nullptr;
+static char *filename         = nullptr;
 
 enum class EmulatorMenuState { EMULATOR_RUNNING, EMULATOR_MENU, EMULATOR_CONTEXT_MENU, EMULATOR_SETTINGS_MENU };
 
@@ -176,7 +177,7 @@ void Tick() {
         if (gbContextSelectionIndex == 0) {
           vmupro_resume_double_buffer_renderer();
           char filepath[512];
-          vmupro_snprintf(filepath, 512, "/sdcard/roms/GameBoy/%sstate", launchfile);
+          vmupro_snprintf(filepath, 512, "/sdcard/roms/GameBoy/STATE/%sstate", filename);
           gnuboy_save_state(filepath);
 
           // Close the modal
@@ -188,12 +189,12 @@ void Tick() {
         else if (gbContextSelectionIndex == 1) {
           vmupro_resume_double_buffer_renderer();
           char filepath[512];
-          vmupro_snprintf(filepath, 512, "/sdcard/roms/GameBoy/%sstate", launchfile);
+          vmupro_snprintf(filepath, 512, "/sdcard/roms/GameBoy/STATE/%sstate", filename);
           if (gnuboy_load_state(filepath) != 0) {
             gnuboy_reset(true);
 
             char sramfile[512];
-            vmupro_snprintf(sramfile, 512, "/sdcard/roms/GameBoy/%s.sram", launchfile);
+            vmupro_snprintf(sramfile, 512, "/sdcard/roms/GameBoy/SAVES/%s.sram", filename);
             if (vmupro_file_exists(sramfile)) {
               gnuboy_load_sram(sramfile);
             }
@@ -270,6 +271,8 @@ void Tick() {
             }
             gnuboy_set_palette((gb_palette_t)gbCurrentPaletteIndex);
             break;
+          case MENU_OPTION_BUTTON_SWAP:
+            swapButtons = !swapButtons;
           default:
             break;
         }
@@ -356,7 +359,7 @@ void Tick() {
 void Exit() {
   // Save SRAM on exit
   char sramfile[512];
-  vmupro_snprintf(sramfile, 512, "/sdcard/roms/GameBoy/%s.sram", launchfile);
+  vmupro_snprintf(sramfile, 512, "/sdcard/roms/GameBoy/SAVES/%s.sram", filename);
   gnuboy_save_sram(sramfile, false);
 
   gnuboy_free_rom();
@@ -377,6 +380,11 @@ void Exit() {
     free(launchfile);
     launchfile = nullptr;
   }
+
+  if (filename) {
+    free(filename);
+    filename = nullptr;
+  }
 }
 
 void audio_callback(void *buffer, size_t length) {
@@ -387,7 +395,12 @@ void audio_callback(void *buffer, size_t length) {
 void app_main(void) {
   vmupro_log(VMUPRO_LOG_INFO, kLogGBCEmu, "Starting Gnuboy");
   vmupro_emubrowser_settings_t emuSettings = {
-      .title = "Gnuboy Emulator", .rootPath = "/sdcard/roms/GameBoy", .filterExtension = ".gb"
+      .title           = "Gnuboy Emulator",
+      .rootPath        = "/sdcard/roms/GameBoy",
+      .filterExtension = ".gb,.gbc",
+      .showFiles       = true,
+      .showFolders     = true,
+      .showIcons       = true
   };
   vmupro_emubrowser_init(emuSettings);
 
@@ -399,8 +412,21 @@ void app_main(void) {
     return;
   }
 
-  char launchPath[512 + 22];
-  vmupro_snprintf(launchPath, (512 + 22), "/sdcard/roms/GameBoy/%s", launchfile);
+  // Extract just the filename from the full path and store in filename global variable
+  filename = (char *)malloc(512);
+  memset(filename, 0x00, 512);
+  char *filename_ptr = strrchr(launchfile, '/');
+  if (filename_ptr != nullptr) {
+    filename_ptr++;  // Move past the '/'
+    vmupro_snprintf(filename, 512, "%s", filename_ptr);
+  }
+  else {
+    // If no '/' found, the entire launchfile is the filename
+    vmupro_snprintf(filename, 512, "%s", launchfile);
+  }
+
+  // char launchPath[512 + 22];
+  // vmupro_snprintf(launchPath, (512 + 22), "/sdcard/roms/GameBoy/%s", launchfile);
 
   // Initialise RAM space
   vmupro_start_double_buffer_renderer();
@@ -427,7 +453,7 @@ void app_main(void) {
   gnuboy_set_framebuffer(video_back_buffer);
   gnuboy_set_soundbuffer((void *)gbc_audio_buffer, 736);
 
-  gnuboy_load_rom_file(launchPath);
+  gnuboy_load_rom_file(launchfile);
   gnuboy_set_palette(GB_PALETTE_DMG);
   gbCurrentPaletteIndex = GB_PALETTE_DMG;
 
@@ -435,8 +461,17 @@ void app_main(void) {
 
   gnuboy_reset(true);
 
+  // Check and create necessary folders on start
+  if (!vmupro_folder_exists("/sdcard/roms/GameBoy/STATE")) {
+    vmupro_create_folder("/sdcard/roms/GameBoy/STATE");
+  }
+
+  if (!vmupro_folder_exists("/sdcard/roms/GameBoy/SAVES")) {
+    vmupro_create_folder("/sdcard/roms/GameBoy/SAVES");
+  }
+
   char sramfile[512];
-  vmupro_snprintf(sramfile, 512, "/sdcard/roms/GameBoy/%s.sram", launchfile);
+  vmupro_snprintf(sramfile, 512, "/sdcard/roms/GameBoy/SAVES/%s.sram", filename);
   if (vmupro_file_exists(sramfile)) {
     gnuboy_load_sram(sramfile);
   }
