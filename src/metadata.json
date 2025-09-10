@@ -2,7 +2,7 @@
   "metadata_version": 1,
   "app_name": "Gnuboy",
   "app_author": "8BitMods",
-  "app_version": "0.9.0",
+  "app_version": "0.9.1",
   "app_mode": 2,
   "icon_transparency": true,
   "app_entry_point": "app_main",
