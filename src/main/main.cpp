@@ -3,9 +3,9 @@
 
 #include <gnuboy.h>
 
-static const char *kLogGBCEmu = "[GNUBOY]";
-static char *launchfile       = nullptr;
-static char *filename         = nullptr;
+static const char* kLogGBCEmu = "[GNUBOY]";
+static char* launchfile       = nullptr;
+static char* filename         = nullptr;
 
 enum class EmulatorMenuState { EMULATOR_RUNNING, EMULATOR_MENU, EMULATOR_CONTEXT_MENU, EMULATOR_SETTINGS_MENU };
 
@@ -21,7 +21,7 @@ typedef enum ContextMenuEntryType {
 };
 
 typedef struct ContextMenuEntry_s {
-  const char *title;
+  const char* title;
   bool enabled              = true;
   ContextMenuEntryType type = MENU_ACTION;
 } ContextMenuEntry;
@@ -44,9 +44,9 @@ const ContextMenuEntry emuContextOptionEntries[5] = {
 
 static EmulatorMenuState currentEmulatorState = EmulatorMenuState::EMULATOR_RUNNING;
 
-static uint8_t *video_back_buffer   = nullptr;
-volatile uint32_t *gbc_audio_buffer = nullptr;
-static uint8_t *pauseBuffer         = nullptr;
+static uint8_t* video_back_buffer   = nullptr;
+volatile uint32_t* gbc_audio_buffer = nullptr;
+static uint8_t* pauseBuffer         = nullptr;
 
 static int gbContextSelectionIndex = 0;
 static int gbCurrentPaletteIndex   = 0;
@@ -368,7 +368,7 @@ void Exit() {
   gnuboy_free_bios();
 
   if (gbc_audio_buffer) {
-    free((void *)gbc_audio_buffer);
+    free((void*)gbc_audio_buffer);
     gbc_audio_buffer = nullptr;
   }
 
@@ -388,14 +388,15 @@ void Exit() {
   }
 }
 
-void audio_callback(void *buffer, size_t length) {
-  int16_t *buff16 = (int16_t *)buffer;
+void audio_callback(void* buffer, size_t length) {
+  int16_t* buff16 = (int16_t*)buffer;
   vmupro_audio_add_stream_samples(buff16, length, vmupro_stereo_mode_t::VMUPRO_AUDIO_STEREO, true);
 }
 
 void app_main(void) {
   vmupro_log(VMUPRO_LOG_INFO, kLogGBCEmu, "Starting Gnuboy");
   vmupro_emubrowser_settings_t emuSettings = {
+      .version         = 1,
       .title           = "Gnuboy Emulator",
       .rootPath        = "/sdcard/roms/GameBoy",
       .filterExtension = ".gb,.gbc",
@@ -405,7 +406,7 @@ void app_main(void) {
   };
   vmupro_emubrowser_init(emuSettings);
 
-  launchfile = (char *)malloc(512);
+  launchfile = (char*)malloc(512);
   memset(launchfile, 0x00, 512);
   vmupro_emubrowser_render_contents(launchfile);
   if (strlen(launchfile) == 0) {
@@ -414,9 +415,9 @@ void app_main(void) {
   }
 
   // Extract just the filename from the full path and store in filename global variable
-  filename = (char *)malloc(512);
+  filename = (char*)malloc(512);
   memset(filename, 0x00, 512);
-  char *filename_ptr = strrchr(launchfile, '/');
+  char* filename_ptr = strrchr(launchfile, '/');
   if (filename_ptr != nullptr) {
     filename_ptr++;  // Move past the '/'
     vmupro_snprintf(filename, 512, "%s", filename_ptr);
@@ -433,13 +434,13 @@ void app_main(void) {
   vmupro_start_double_buffer_renderer();
   video_back_buffer = vmupro_get_back_buffer();
 
-  gbc_audio_buffer = (uint32_t *)malloc(736 * sizeof(uint32_t));
+  gbc_audio_buffer = (uint32_t*)malloc(736 * sizeof(uint32_t));
   if (!gbc_audio_buffer) {
     vmupro_log(VMUPRO_LOG_ERROR, kLogGBCEmu, "Failed allocating sound buffer!");
     return;
   }
 
-  pauseBuffer = (uint8_t *)malloc(115200);
+  pauseBuffer = (uint8_t*)malloc(115200);
   if (!pauseBuffer) {
     vmupro_log(VMUPRO_LOG_ERROR, kLogGBCEmu, "Failed allocating pause buffer!");
     return;
@@ -452,7 +453,7 @@ void app_main(void) {
   }
 
   gnuboy_set_framebuffer(video_back_buffer);
-  gnuboy_set_soundbuffer((void *)gbc_audio_buffer, 736);
+  gnuboy_set_soundbuffer((void*)gbc_audio_buffer, 736);
 
   gnuboy_load_rom_file(launchfile);
   gnuboy_set_palette(GB_PALETTE_DMG);
