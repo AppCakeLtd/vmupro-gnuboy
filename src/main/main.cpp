@@ -143,7 +143,7 @@ void Tick() {
               vmupro_snprintf(swapTextState, 6, "%s", (swapButtons ? "Yes" : "No"));
               int tlen = vmupro_calc_text_length(swapTextState);
               vmupro_draw_text(swapTextState, 190 - tlen - 5, startY + (x * 22), fgColor, bgColor);
-            }
+            } break;
             default:
               break;
           }
@@ -273,6 +273,7 @@ void Tick() {
             break;
           case MENU_OPTION_BUTTON_SWAP:
             swapButtons = !swapButtons;
+            break;
           default:
             break;
         }
