@@ -14,7 +14,7 @@ typedef struct {
 
 #define priused(attr)                                                            \
   ({                                                                             \
-    uint32_t *a = (uint32_t *)(attr);                                            \
+    uint32_t* a = (uint32_t*)(attr);                                             \
     (int)((a[0] | a[1] | a[2] | a[3] | a[4] | a[5] | a[6] | a[7]) & 0x80808080); \
   })
 
@@ -35,8 +35,8 @@ static bool pal_dirty;
  * Drawing routines
  */
 
-__attribute__((optimize("unroll-loops"))) static inline byte *get_patpix(int tile, int x) {
-  const byte *vram = VBANKS[0];
+__attribute__((optimize("unroll-loops"))) static inline byte* get_patpix(int tile, int x) {
+  const byte* vram = VBANKS[0];
   static byte pix[8];
 
   if (tile & (1 << 11))  // Vertical Flip
@@ -56,16 +56,16 @@ __attribute__((optimize("unroll-loops"))) static inline byte *get_patpix(int til
   return pix;
 }
 
-static inline void tilebuf(int S, int T, int WT, int *WND, int *BG) {
+static inline void tilebuf(int S, int T, int WT, int* WND, int* BG) {
   int cnt, base;
   byte *tilemap, *attrmap;
-  int *tilebuf;
+  int* tilebuf;
 
   /* Background tiles */
 
   const int8_t wraptable[64] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -32};
-  const int8_t *wrap         = wraptable + S;
+  const int8_t* wrap         = wraptable + S;
 
   base    = ((R_LCDC & 0x08) ? 0x1C00 : 0x1800) + (T << 5) + S;
   tilemap = VBANKS[0] + base;
@@ -132,10 +132,10 @@ static inline void tilebuf(int S, int T, int WT, int *WND, int *BG) {
   }
 }
 
-static inline void bg_scan(int U, int V, int *BG) {
+static inline void bg_scan(int U, int V, int* BG) {
   int cnt;
   byte *src, *dest;
-  int *tile;
+  int* tile;
 
   if (WX <= 0) return;
 
@@ -156,10 +156,10 @@ static inline void bg_scan(int U, int V, int *BG) {
   }
 }
 
-static inline void wnd_scan(int WV, int *WND) {
+static inline void wnd_scan(int WV, int* WND) {
   int cnt;
   byte *src, *dest;
-  int *tile;
+  int* tile;
 
   cnt  = 160 - WX;
   tile = WND;
@@ -173,7 +173,7 @@ static inline void wnd_scan(int WV, int *WND) {
   }
 }
 
-static inline void bg_scan_pri(int S, int T, int U, byte *PRI) {
+static inline void bg_scan_pri(int S, int T, int U, byte* PRI) {
   int cnt, i;
   byte *src, *dest;
 
@@ -203,7 +203,7 @@ static inline void bg_scan_pri(int S, int T, int U, byte *PRI) {
   memset(dest, src[i & 31] & 128, cnt);
 }
 
-static inline void wnd_scan_pri(int WT, byte *PRI) {
+static inline void wnd_scan_pri(int WT, byte* PRI) {
   int cnt, i;
   byte *src, *dest;
 
@@ -228,10 +228,10 @@ static inline void wnd_scan_pri(int WT, byte *PRI) {
   memset(dest, src[i] & 128, cnt);
 }
 
-static inline void bg_scan_color(int U, int V, int *BG) {
+static inline void bg_scan_color(int U, int V, int* BG) {
   int cnt;
   byte *src, *dest;
-  int *tile;
+  int* tile;
 
   if (WX <= 0) return;
 
@@ -252,10 +252,10 @@ static inline void bg_scan_color(int U, int V, int *BG) {
   }
 }
 
-static inline void wnd_scan_color(int WV, int *WND) {
+static inline void wnd_scan_color(int WV, int* WND) {
   int cnt;
   byte *src, *dest;
-  int *tile;
+  int* tile;
 
   if (WX >= 160) return;
 
@@ -271,7 +271,7 @@ static inline void wnd_scan_color(int WV, int *WND) {
   }
 }
 
-static inline int spr_enum(gb_vs_t *VS) {
+static inline int spr_enum(gb_vs_t* VS) {
   if (!(R_LCDC & 0x02)) return 0;
 
   int line = R_LY;
@@ -280,7 +280,7 @@ static inline int spr_enum(gb_vs_t *VS) {
   for (int i = 0; i < 40; ++i) {
     const struct {
       byte y, x, pat, flags;
-    } *obj = (void *)&GB.oam[i * 4];
+    }* obj = (void*)&GB.oam[i * 4];
 
     if (line >= obj->y || line + 16 < obj->y) continue;
     if (line + 8 >= obj->y && !(R_LCDC & 0x04)) continue;
@@ -338,14 +338,14 @@ static inline int spr_enum(gb_vs_t *VS) {
   return NS;
 }
 
-static inline void spr_scan(gb_vs_t *VS, int ns, byte *PRI) {
+static inline void spr_scan(gb_vs_t* VS, int ns, byte* PRI) {
   byte *src, *dest, *bg, *pri;
   int i, b, x, pal;
   byte bgdup[256];
 
   memcpy(bgdup, BUF, 256);
 
-  gb_vs_t *vs = &VS[ns - 1];
+  gb_vs_t* vs = &VS[ns - 1];
 
   for (; ns; ns--, vs--) {
     pal = vs->pal;
@@ -470,7 +470,7 @@ void gb_lcd_lcdc_change(byte b) {
 static inline void sync_palette(void) {
   MESSAGE_DEBUG("Syncing palette...\n");
 
-  uint16_t *colors = (uint16_t *)GB.pal;
+  uint16_t* colors = (uint16_t*)GB.pal;
 
   if (!IS_CGB) {
     int pal_num = host.video.colorize % GB_PALETTE_COUNT;
@@ -602,7 +602,7 @@ static inline void lcd_renderline() {
 
   if (host.video.format == GB_PIXEL_PALETTED || host.video.format == GB_PIXEL_PALETTED_BE) {
     // memcpy(host.video.buffer8 + SL * 160, BUF, 160);
-    uint32_t *screen32 = (uint32_t *)host.video.buffer;
+    uint32_t* screen32 = (uint32_t*)host.video.buffer;
     int width          = 240;
     int xstart         = host.video.xStart;
     if (host.video.fill) {
@@ -622,7 +622,8 @@ static inline void lcd_renderline() {
       }
     }
     else {
-      for (int p = xstart; p <= width + xstart; p += 2) {
+      width = 160;
+      for (int p = 0; p < width; p += 2) {
         uint16_t pixel1 = host.video.palette[BUF[p] % 64];
         uint16_t pixel2 = host.video.palette[BUF[p + 1] % 64];
 
@@ -632,8 +633,8 @@ static inline void lcd_renderline() {
     }
   }
   else {
-    uint16_t *dst = host.video.buffer16 + SL * 160;
-    uint16_t *pal = host.video.palette;
+    uint16_t* dst = host.video.buffer16 + SL * 160;
+    uint16_t* pal = host.video.palette;
 
     for (int i = 0; i < 160; ++i) dst[i] = pal[BUF[i]];
   }

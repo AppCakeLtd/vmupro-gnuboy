@@ -38,7 +38,7 @@ const ContextMenuEntry emuContextOptionEntries[5] = {
     {.title = "Volume", .enabled = true, .type = MENU_OPTION_VOLUME},
     {.title = "Brightness", .enabled = true, .type = MENU_OPTION_BRIGHTNESS},
     {.title = "Palette", .enabled = true, .type = MENU_OPTION_PALETTE},
-    {.title = "State Slot", .enabled = true, .type = MENU_OPTION_STATE_SLOT},
+    {.title = "Fill Screen", .enabled = true, .type = MENU_OPTION_SCALING},
     {.title = "Swap A+B", .enabled = true, .type = MENU_OPTION_BUTTON_SWAP},
 };
 
@@ -61,6 +61,7 @@ static float frame_time_avg        = 0.0f;
 
 static bool inOptionsMenu = false;
 static bool swapButtons   = false;
+static bool fillScreen    = true;
 static bool emuRunning    = true;
 
 static void update_frame_time(uint64_t ftime) {
@@ -137,6 +138,12 @@ void Tick() {
               vmupro_draw_text(
                   PaletteNames[gbCurrentPaletteIndex], 190 - tlen - 5, startY + (x * 22), fgColor, bgColor
               );
+            } break;
+            case MENU_OPTION_SCALING: {
+              char fillTextState[5] = "Yes";
+              vmupro_snprintf(fillTextState, 6, "%s", (fillScreen ? "Yes" : "No"));
+              int tlen = vmupro_calc_text_length(fillTextState);
+              vmupro_draw_text(fillTextState, 190 - tlen - 5, startY + (x * 22), fgColor, bgColor);
             } break;
             case MENU_OPTION_BUTTON_SWAP: {
               char swapTextState[5] = "Yes";
@@ -269,6 +276,21 @@ void Tick() {
             }
             gnuboy_set_palette((gb_palette_t)gbCurrentPaletteIndex);
             break;
+          case MENU_OPTION_SCALING: {
+            fillScreen = !fillScreen;
+            if (fillScreen) {
+              gnuboy_set_video_params(0, 12, 1);
+            }
+            else {
+              gnuboy_set_video_params(40, 48, 0);
+            }
+            // Clear the buffers
+            uint8_t* fb = vmupro_get_front_fb();
+            memset(fb, 0x00, 115200);
+
+            uint8_t* bb = vmupro_get_back_buffer();
+            memset(bb, 0x00, 115200);
+          } break;
           case MENU_OPTION_BUTTON_SWAP:
             swapButtons = !swapButtons;
             break;
