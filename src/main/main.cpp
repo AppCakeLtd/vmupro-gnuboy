@@ -61,7 +61,7 @@ static float frame_time_avg        = 0.0f;
 
 static bool inOptionsMenu = false;
 static bool swapButtons   = false;
-static bool fillScreen    = true;
+static gb_scaling_mode_t scalingMode = GB_SCALING_NEAREST;
 static bool emuRunning    = true;
 
 static void update_frame_time(uint64_t ftime) {
@@ -140,10 +140,15 @@ void Tick() {
               );
             } break;
             case MENU_OPTION_SCALING: {
-              char fillTextState[5] = "Yes";
-              vmupro_snprintf(fillTextState, 6, "%s", (fillScreen ? "Yes" : "No"));
-              int tlen = vmupro_calc_text_length(fillTextState);
-              vmupro_draw_text(fillTextState, 190 - tlen - 5, startY + (x * 22), fgColor, bgColor);
+              const char* scalingText;
+              switch (scalingMode) {
+                case GB_SCALING_NONE:     scalingText = "None"; break;
+                case GB_SCALING_NEAREST:  scalingText = "Nearest"; break;
+                case GB_SCALING_BILINEAR: scalingText = "Smooth"; break;
+                default:                  scalingText = "Unknown"; break;
+              }
+              int tlen = vmupro_calc_text_length(scalingText);
+              vmupro_draw_text(scalingText, 190 - tlen - 5, startY + (x * 22), fgColor, bgColor);
             } break;
             case MENU_OPTION_BUTTON_SWAP: {
               char swapTextState[5] = "Yes";
@@ -277,12 +282,20 @@ void Tick() {
             gnuboy_set_palette((gb_palette_t)gbCurrentPaletteIndex);
             break;
           case MENU_OPTION_SCALING: {
-            fillScreen = !fillScreen;
-            if (fillScreen) {
-              gnuboy_set_video_params(0, 12, 1);
-            }
-            else {
-              gnuboy_set_video_params(40, 48, 0);
+            // Cycle through scaling modes: None -> Nearest -> Smooth -> None
+            switch (scalingMode) {
+              case GB_SCALING_NONE:
+                scalingMode = GB_SCALING_NEAREST;
+                gnuboy_set_video_params(0, 12, GB_SCALING_NEAREST);
+                break;
+              case GB_SCALING_NEAREST:
+                scalingMode = GB_SCALING_BILINEAR;
+                gnuboy_set_video_params(0, 12, GB_SCALING_BILINEAR);
+                break;
+              case GB_SCALING_BILINEAR:
+                scalingMode = GB_SCALING_NONE;
+                gnuboy_set_video_params(40, 48, GB_SCALING_NONE);
+                break;
             }
             // Clear the buffers
             uint8_t* fb = vmupro_get_front_fb();
@@ -479,7 +492,7 @@ void app_main(void) {
   gnuboy_set_palette(GB_PALETTE_DMG);
   gbCurrentPaletteIndex = GB_PALETTE_DMG;
 
-  gnuboy_set_video_params(0, 12, 1);
+  gnuboy_set_video_params(0, 12, GB_SCALING_NEAREST);
 
   gnuboy_reset(true);
 

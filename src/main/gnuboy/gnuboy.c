@@ -473,10 +473,10 @@ void gnuboy_set_palette(gb_palette_t pal) {
   gb_lcd_pal_dirty();
 }
 
-void gnuboy_set_video_params(int xStart, int yOffset, bool fill) {
-  GB.video.xStart  = xStart;
-  GB.video.yOffset = yOffset;
-  GB.video.fill    = fill;
+void gnuboy_set_video_params(int xStart, int yOffset, gb_scaling_mode_t scalingMode) {
+  GB.video.xStart      = xStart;
+  GB.video.yOffset     = yOffset;
+  GB.video.scalingMode = scalingMode;
 }
 
 bool gnuboy_sram_dirty(void) { return gbcart.sram_dirty != 0; }

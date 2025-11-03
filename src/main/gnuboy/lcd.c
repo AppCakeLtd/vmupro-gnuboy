@@ -605,7 +605,9 @@ static inline void lcd_renderline() {
     uint32_t* screen32 = (uint32_t*)host.video.buffer;
     int width          = 240;
     int xstart         = host.video.xStart;
-    if (host.video.fill) {
+
+    if (host.video.scalingMode == GB_SCALING_NEAREST) {
+      // 1.5x Nearest Neighbor scaling (160x144 -> 240x216)
       int outline = SL * 3 / 2;
       for (int p = xstart; p < width; ++p) {
         int nearcol = (p * 2) / 3;
@@ -621,7 +623,92 @@ static inline void lcd_renderline() {
         }
       }
     }
+    else if (host.video.scalingMode == GB_SCALING_BILINEAR) {
+      // 1.5x Bilinear interpolation scaling (160x144 -> 240x216)
+      // Smoothly interpolates between adjacent pixels for better quality
+      int outline = SL * 3 / 2;
+
+      for (int p = xstart; p < width; p += 2) {
+        // Calculate source position with sub-pixel precision
+        // 240 output pixels from 160 input pixels: ratio is 160/240 = 2/3
+        int src_x_fixed = (p * 2 * 256) / 3;  // Fixed-point math (8.8 format)
+        int src_x       = src_x_fixed >> 8;   // Integer part
+        int frac        = src_x_fixed & 0xFF; // Fractional part (0-255)
+
+        // Get the two source pixels to interpolate between
+        byte px0 = BUF[src_x];
+        byte px1 = (src_x < 159) ? BUF[src_x + 1] : px0;
+
+        // For the second output pixel
+        int src_x2_fixed = ((p + 1) * 2 * 256) / 3;
+        int src_x2       = src_x2_fixed >> 8;
+        int frac2        = src_x2_fixed & 0xFF;
+
+        byte px2 = BUF[src_x2];
+        byte px3 = (src_x2 < 159) ? BUF[src_x2 + 1] : px2;
+
+        // Interpolate colors in RGB565 space for better quality
+        uint16_t color0 = host.video.palette[px0 % 64];
+        uint16_t color1 = host.video.palette[px1 % 64];
+        uint16_t color2 = host.video.palette[px2 % 64];
+        uint16_t color3 = host.video.palette[px3 % 64];
+
+        // Bilinear interpolation for pixel 1
+        uint16_t pixel1;
+        if (frac == 0 || px0 == px1) {
+          pixel1 = color0;
+        } else {
+          // Extract RGB565 components directly from BE format
+          // BE RGB565: [G2G1G0R4R3][R2R1R0B4B3][B2B1B0xxxx]
+          int r0 = (color0 >> 3) & 0x1F;   // Red in bits 3-7 of high byte
+          int g0 = ((color0 >> 13) & 0x07) | ((color0 << 3) & 0x38);  // Green spans both bytes
+          int b0 = (color0 >> 8) & 0x1F;   // Blue in bits 3-7 of low byte
+
+          int r1 = (color1 >> 3) & 0x1F;
+          int g1 = ((color1 >> 13) & 0x07) | ((color1 << 3) & 0x38);
+          int b1 = (color1 >> 8) & 0x1F;
+
+          // Interpolate (frac is 0-255)
+          int r = r0 + (((r1 - r0) * frac) >> 8);
+          int g = g0 + (((g1 - g0) * frac) >> 8);
+          int b = b0 + (((b1 - b0) * frac) >> 8);
+
+          // Build RGB565 in BE format directly
+          pixel1 = ((r & 0x1F) << 3) | ((g & 0x38) >> 3) | ((g & 0x07) << 13) | ((b & 0x1F) << 8);
+        }
+
+        // Bilinear interpolation for pixel 2
+        uint16_t pixel2;
+        if (frac2 == 0 || px2 == px3) {
+          pixel2 = color2;
+        } else {
+          // Extract RGB565 components directly from BE format
+          int r0 = (color2 >> 3) & 0x1F;
+          int g0 = ((color2 >> 13) & 0x07) | ((color2 << 3) & 0x38);
+          int b0 = (color2 >> 8) & 0x1F;
+
+          int r1 = (color3 >> 3) & 0x1F;
+          int g1 = ((color3 >> 13) & 0x07) | ((color3 << 3) & 0x38);
+          int b1 = (color3 >> 8) & 0x1F;
+
+          int r = r0 + (((r1 - r0) * frac2) >> 8);
+          int g = g0 + (((g1 - g0) * frac2) >> 8);
+          int b = b0 + (((b1 - b0) * frac2) >> 8);
+
+          // Build RGB565 in BE format directly
+          pixel2 = ((r & 0x1F) << 3) | ((g & 0x38) >> 3) | ((g & 0x07) << 13) | ((b & 0x1F) << 8);
+        }
+
+        uint32_t combinedPixels = (pixel2 << 16) | pixel1;
+        screen32[(((outline + host.video.yOffset) * 240) + (p - xstart)) / 2] = combinedPixels;
+
+        if (((SL + 1) % 2) == 0) {
+          screen32[(((outline + host.video.yOffset + 1) * 240) + (p - xstart)) / 2] = combinedPixels;
+        }
+      }
+    }
     else {
+      // GB_SCALING_NONE - 1:1 (160x144 centered)
       width = 160;
       for (int p = 0; p < width; p += 2) {
         uint16_t pixel1 = host.video.palette[BUF[p] % 64];

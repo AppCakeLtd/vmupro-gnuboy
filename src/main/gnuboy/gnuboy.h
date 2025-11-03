@@ -95,6 +95,12 @@ static const char *PaletteNames[] = {"GB0",  "GB1",  "GB2",  "GB3",  "GB4",  "GB
 typedef enum { GB_PIXEL_PALETTED, GB_PIXEL_565_LE, GB_PIXEL_565_BE, GB_PIXEL_PALETTED_BE } gb_video_fmt_t;
 
 typedef enum {
+  GB_SCALING_NONE,         // 1:1 (160x144 centered on screen)
+  GB_SCALING_NEAREST,      // 1.5x nearest neighbor (240x216)
+  GB_SCALING_BILINEAR,     // 1.5x bilinear interpolation (240x216)
+} gb_scaling_mode_t;
+
+typedef enum {
   GB_AUDIO_STEREO_S16,
   GB_AUDIO_MONO_S16,
 } gb_audio_fmt_t;
@@ -131,7 +137,7 @@ int gnuboy_get_hwtype(void);
 void gnuboy_set_hwtype(gb_hwtype_t type);
 int gnuboy_get_palette(void);
 void gnuboy_set_palette(gb_palette_t pal);
-void gnuboy_set_video_params(int xStart, int yOffset, bool fill);
+void gnuboy_set_video_params(int xStart, int yOffset, gb_scaling_mode_t scalingMode);
 
 int gnuboy_load_sram(const char *file);
 int gnuboy_save_sram(const char *file, bool quick_save);

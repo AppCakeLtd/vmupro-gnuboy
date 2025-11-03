@@ -241,7 +241,7 @@ typedef struct {
     };
 
     int xStart;
-    bool fill;
+    gb_scaling_mode_t scalingMode;
     int yOffset;
 
     uint16_t palette[64];
