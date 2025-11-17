@@ -38,7 +38,7 @@ const ContextMenuEntry emuContextOptionEntries[5] = {
     {.title = "Volume", .enabled = true, .type = MENU_OPTION_VOLUME},
     {.title = "Brightness", .enabled = true, .type = MENU_OPTION_BRIGHTNESS},
     {.title = "Palette", .enabled = true, .type = MENU_OPTION_PALETTE},
-    {.title = "Fill Screen", .enabled = true, .type = MENU_OPTION_SCALING},
+    {.title = "Scaling", .enabled = true, .type = MENU_OPTION_SCALING},
     {.title = "Swap A+B", .enabled = true, .type = MENU_OPTION_BUTTON_SWAP},
 };
 
@@ -59,10 +59,10 @@ static uint64_t frame_time_max     = 0.0f;
 static uint64_t frame_time_min     = 0.0f;
 static float frame_time_avg        = 0.0f;
 
-static bool inOptionsMenu = false;
-static bool swapButtons   = false;
+static bool inOptionsMenu            = false;
+static bool swapButtons              = false;
 static gb_scaling_mode_t scalingMode = GB_SCALING_NEAREST;
-static bool emuRunning    = true;
+static bool emuRunning               = true;
 
 static void update_frame_time(uint64_t ftime) {
   num_frames++;
@@ -142,10 +142,18 @@ void Tick() {
             case MENU_OPTION_SCALING: {
               const char* scalingText;
               switch (scalingMode) {
-                case GB_SCALING_NONE:     scalingText = "None"; break;
-                case GB_SCALING_NEAREST:  scalingText = "Nearest"; break;
-                case GB_SCALING_BILINEAR: scalingText = "Smooth"; break;
-                default:                  scalingText = "Unknown"; break;
+                case GB_SCALING_NONE:
+                  scalingText = "None";
+                  break;
+                case GB_SCALING_NEAREST:
+                  scalingText = "Simple";
+                  break;
+                case GB_SCALING_BILINEAR:
+                  scalingText = "Smooth";
+                  break;
+                default:
+                  scalingText = "Unknown";
+                  break;
               }
               int tlen = vmupro_calc_text_length(scalingText);
               vmupro_draw_text(scalingText, 190 - tlen - 5, startY + (x * 22), fgColor, bgColor);
