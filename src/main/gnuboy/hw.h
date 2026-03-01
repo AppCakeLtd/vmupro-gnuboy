@@ -218,8 +218,9 @@ typedef struct {
   int ilines;  // Interrupt lines
   int pad;     // Button status
 
-  int serial;  // Serial cycle counter
-  int hdma;    // DMA cycle counter
+  int serial;          // Serial cycle counter
+  int serial_timeout;  // Extended timeout for wireless serial (link cable)
+  int hdma;            // DMA cycle counter
 
   int hwtype;  // type of emulated device
   int frames;  // total frames counter

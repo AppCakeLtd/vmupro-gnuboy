@@ -1,7 +1,9 @@
 #include <string.h>
 #include <vmupro_sdk.h>
+#include <vmupro_peernet.h>
 
 #include <gnuboy.h>
+#include "link_cable.h"
 
 static const char* kLogGBCEmu = "[GNUBOY]";
 static char* launchfile       = nullptr;
@@ -26,10 +28,11 @@ typedef struct ContextMenuEntry_s {
   ContextMenuEntryType type = MENU_ACTION;
 } ContextMenuEntry;
 
-const ContextMenuEntry emuContextEntries[5] = {
+const ContextMenuEntry emuContextEntries[6] = {
     {.title = "Save & Continue", .enabled = true, .type = MENU_ACTION},
     {.title = "Load Game", .enabled = true, .type = MENU_ACTION},
     {.title = "Restart", .enabled = true, .type = MENU_ACTION},
+    {.title = "Link Cable", .enabled = true, .type = MENU_ACTION},
     {.title = "Options", .enabled = true, .type = MENU_ACTION},
     {.title = "Quit", .enabled = true, .type = MENU_ACTION},
 };
@@ -102,41 +105,44 @@ void Tick() {
 
     vmupro_btn_read();
     if (currentEmulatorState == EmulatorMenuState::EMULATOR_MENU) {
+      /* Keep link cable alive while in menu (discovery + keepalive) */
+      link_cable_update();
+
       vmupro_display_clear(VMUPRO_COLOR_BLACK);
       // vmupro_blit_buffer_dithered(pauseBuffer, 0, 0, 240, 240, 2);
       vmupro_blit_buffer_blended(pauseBuffer, 0, 0, 240, 240, 150);
       // We'll only use our front buffer for this to simplify things
       int startY = 50;
-      vmupro_draw_fill_rect(40, 37, 200, 170, VMUPRO_COLOR_NAVY);
+      vmupro_draw_fill_rect(20, 37, 220, 192, VMUPRO_COLOR_NAVY);
 
       vmupro_set_font(VMUPRO_FONT_OPEN_SANS_15x18);
-      for (int x = 0; x < 5; ++x) {
+      for (int x = 0; x < 6; ++x) {
         uint16_t fgColor = gbContextSelectionIndex == x ? VMUPRO_COLOR_NAVY : VMUPRO_COLOR_WHITE;
         uint16_t bgColor = gbContextSelectionIndex == x ? VMUPRO_COLOR_WHITE : VMUPRO_COLOR_NAVY;
         if (gbContextSelectionIndex == x) {
-          vmupro_draw_fill_rect(50, startY + (x * 22), 190, (startY + (x * 22) + 20), VMUPRO_COLOR_WHITE);
+          vmupro_draw_fill_rect(30, startY + (x * 22), 210, (startY + (x * 22) + 20), VMUPRO_COLOR_WHITE);
         }
         if (inOptionsMenu) {
           if (!emuContextOptionEntries[x].enabled) fgColor = VMUPRO_COLOR_GREY;
-          vmupro_draw_text(emuContextOptionEntries[x].title, 60, startY + (x * 22), fgColor, bgColor);
+          vmupro_draw_text(emuContextOptionEntries[x].title, 40, startY + (x * 22), fgColor, bgColor);
           // For options, we need to draw the current option value right aligned within the selection boundary
           switch (emuContextOptionEntries[x].type) {
             case MENU_OPTION_BRIGHTNESS: {
               char currentBrightness[5] = "0%";
               vmupro_snprintf(currentBrightness, 6, "%d%%", (vmupro_get_global_brightness() * 10) + 10);
               int tlen = vmupro_calc_text_length(currentBrightness);
-              vmupro_draw_text(currentBrightness, 190 - tlen - 5, startY + (x * 22), fgColor, bgColor);
+              vmupro_draw_text(currentBrightness, 210 - tlen - 5, startY + (x * 22), fgColor, bgColor);
             } break;
             case MENU_OPTION_VOLUME: {
               char currentVolume[5] = "0%";
               vmupro_snprintf(currentVolume, 6, "%d%%", (vmupro_get_global_volume() * 10) + 10);
               int tlen = vmupro_calc_text_length(currentVolume);
-              vmupro_draw_text(currentVolume, 190 - tlen - 5, startY + (x * 22), fgColor, bgColor);
+              vmupro_draw_text(currentVolume, 210 - tlen - 5, startY + (x * 22), fgColor, bgColor);
             } break;
             case MENU_OPTION_PALETTE: {
               int tlen = vmupro_calc_text_length(PaletteNames[gbCurrentPaletteIndex]);
               vmupro_draw_text(
-                  PaletteNames[gbCurrentPaletteIndex], 190 - tlen - 5, startY + (x * 22), fgColor, bgColor
+                  PaletteNames[gbCurrentPaletteIndex], 210 - tlen - 5, startY + (x * 22), fgColor, bgColor
               );
             } break;
             case MENU_OPTION_SCALING: {
@@ -156,13 +162,13 @@ void Tick() {
                   break;
               }
               int tlen = vmupro_calc_text_length(scalingText);
-              vmupro_draw_text(scalingText, 190 - tlen - 5, startY + (x * 22), fgColor, bgColor);
+              vmupro_draw_text(scalingText, 210 - tlen - 5, startY + (x * 22), fgColor, bgColor);
             } break;
             case MENU_OPTION_BUTTON_SWAP: {
               char swapTextState[5] = "Yes";
               vmupro_snprintf(swapTextState, 6, "%s", (swapButtons ? "Yes" : "No"));
               int tlen = vmupro_calc_text_length(swapTextState);
-              vmupro_draw_text(swapTextState, 190 - tlen - 5, startY + (x * 22), fgColor, bgColor);
+              vmupro_draw_text(swapTextState, 210 - tlen - 5, startY + (x * 22), fgColor, bgColor);
             } break;
             default:
               break;
@@ -170,7 +176,12 @@ void Tick() {
         }
         else {
           if (!emuContextEntries[x].enabled) fgColor = VMUPRO_COLOR_GREY;
-          vmupro_draw_text(emuContextEntries[x].title, 60, startY + (x * 22), fgColor, bgColor);
+          vmupro_draw_text(emuContextEntries[x].title, 40, startY + (x * 22), fgColor, bgColor);
+          if (x == 3) {  // Link Cable — show status
+            const char* status = link_cable_get_status_text();
+            int tlen = vmupro_calc_text_length(status);
+            vmupro_draw_text(status, 210 - tlen - 5, startY + (x * 22), fgColor, bgColor);
+          }
         }
       }
       vmupro_display_refresh();
@@ -232,23 +243,35 @@ void Tick() {
           gnuboy_reset(true);
           currentEmulatorState = EmulatorMenuState::EMULATOR_RUNNING;
         }
-        else if (gbContextSelectionIndex == 3) {  // Options
+        else if (gbContextSelectionIndex == 3) {  // Link Cable
+          if (link_cable_get_state() == LINK_STATE_IDLE) {
+            link_cable_init();
+            link_cable_start_discovery();
+          }
+          else if (link_cable_get_state() == LINK_STATE_DISCOVERING) {
+            link_cable_disconnect();
+          }
+          else if (link_cable_get_state() == LINK_STATE_CONNECTED) {
+            link_cable_disconnect();
+          }
+        }
+        else if (gbContextSelectionIndex == 4) {  // Options
           // let's change a flag, let the rendered in the next iteration re-render the menu
           inOptionsMenu = true;
         }
-        else if (gbContextSelectionIndex == 4) {  // Quit
+        else if (gbContextSelectionIndex == 5) {  // Quit
           emuRunning = false;
         }
       }
       else if (vmupro_btn_pressed(DPad_Down)) {
-        if (gbContextSelectionIndex == 4)
+        if (gbContextSelectionIndex == 5)
           gbContextSelectionIndex = 0;
         else
           gbContextSelectionIndex++;
       }
       else if (vmupro_btn_pressed(DPad_Up)) {
         if (gbContextSelectionIndex == 0)
-          gbContextSelectionIndex = 4;
+          gbContextSelectionIndex = 5;
         else
           gbContextSelectionIndex--;
       }
@@ -357,6 +380,9 @@ void Tick() {
         continue;
       }
 
+      /* Tick the link cable (keepalive, drain rx ring) */
+      link_cable_update();
+
       if (renderFrame) {
         video_back_buffer = vmupro_get_back_buffer();
         gnuboy_set_framebuffer(video_back_buffer);
@@ -399,6 +425,8 @@ void Tick() {
 }
 
 void Exit() {
+  link_cable_deinit();
+
   // Save SRAM on exit
   char sramfile[512];
   vmupro_snprintf(sramfile, 512, "/sdcard/roms/GameBoy/SAVES/%s.sram", filename);

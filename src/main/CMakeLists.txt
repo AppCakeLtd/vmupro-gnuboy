@@ -1,6 +1,6 @@
 idf_component_register(
   SRC_DIRS "." "gnuboy"
-  PRIV_INCLUDE_DIRS "gnuboy"
+  PRIV_INCLUDE_DIRS "." "gnuboy"
   )
 
 component_compile_options(-fjump-tables -ftree-switch-conversion -O3)

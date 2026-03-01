@@ -5,6 +5,7 @@
 #include "cpu.h"
 #include "hw.h"
 #include "lcd.h"
+#include "link_cable.h"
 
 gb_cart_t gbcart;
 gb_t GB;
@@ -193,6 +194,7 @@ bool gb_hw_init(void) {
 void gb_hw_reset(bool hard) {
   hw.ilines = 0;
   hw.serial = 0;
+  hw.serial_timeout = 0;
   hw.hdma   = 0;
   hw.pad    = 0;
 
@@ -476,10 +478,17 @@ void gb_hw_write(unsigned a, byte b) {
             REG(r) = b;
             break;
           case RI_SC:
-            if ((b & 0x81) == 0x81)
+            if ((b & 0x81) == 0x81) {
               hw.serial = 1952;  // 8 * 122us;
-            else
+              /* If link cable is connected, allow extra time for wireless round-trip */
+              if (link_cable_get_state() == LINK_STATE_CONNECTED)
+                hw.serial_timeout = 19520;  // ~10ms extended timeout
+              else
+                hw.serial_timeout = 0;
+            } else {
               hw.serial = 0;
+              hw.serial_timeout = 0;
+            }
             REG(r) = b; /* & 0x7f; */
             break;
           case RI_DIV:

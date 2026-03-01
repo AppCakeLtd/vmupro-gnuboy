@@ -3,6 +3,7 @@
 #include "lcd.h"
 #include "cpu.h"
 #include "sound.h"
+#include "link_cable.h"
 
 // For cycle accurate emulation this needs to be 1
 // Anything above 10 have diminishing returns
@@ -320,12 +321,80 @@ static inline void timer_advance(int cycles) {
 
 /* cnt - time to emulate, expressed in real clock cycles */
 static inline void serial_advance(int cycles) {
+  uint8_t rx;
+
+  /* --- Slave mode: no active transfer, but link cable may push data --- */
+  if (GB.serial == 0 && GB.serial_timeout == 0) {
+    if (link_cable_get_state() == LINK_STATE_CONNECTED) {
+      /* Keep the slave's SB updated so the remote master gets the right byte */
+      link_cable_slave_set_sb(R_SB);
+      /* Check if the remote master sent us a byte */
+      if (link_cable_slave_poll(&rx)) {
+        R_SB = rx;
+        R_SC &= 0x7f;
+        gb_hw_interrupt(IF_SERIAL, 1);
+        gb_hw_interrupt(IF_SERIAL, 0);
+      }
+    }
+    return;
+  }
+
+  /* --- Master mode: active transfer countdown --- */
   if (GB.serial > 0) {
+    /* On first tick of a connected transfer, send our byte */
+    if (link_cable_get_state() == LINK_STATE_CONNECTED && GB.serial == 1952) {
+      link_cable_master_transfer(R_SB);
+    }
+
     GB.serial -= cycles << 1;
-    if (GB.serial <= 0) {
+
+    if (link_cable_get_state() == LINK_STATE_CONNECTED) {
+      /* Check if response arrived from peer */
+      if (link_cable_master_poll(&rx)) {
+        R_SB = rx;
+        R_SC &= 0x7f;
+        GB.serial = 0;
+        GB.serial_timeout = 0;
+        gb_hw_interrupt(IF_SERIAL, 1);
+        gb_hw_interrupt(IF_SERIAL, 0);
+        return;
+      }
+      /* Normal countdown expired — enter extended timeout */
+      if (GB.serial <= 0) {
+        GB.serial = 0;
+        /* serial_timeout continues below */
+      }
+    } else {
+      /* No link cable — original behavior */
+      if (GB.serial <= 0) {
+        R_SB = 0xFF;
+        R_SC &= 0x7f;
+        GB.serial = 0;
+        gb_hw_interrupt(IF_SERIAL, 1);
+        gb_hw_interrupt(IF_SERIAL, 0);
+      }
+    }
+    return;
+  }
+
+  /* --- Extended timeout: waiting for wireless response --- */
+  if (GB.serial_timeout > 0) {
+    GB.serial_timeout -= cycles << 1;
+
+    if (link_cable_master_poll(&rx)) {
+      R_SB = rx;
+      R_SC &= 0x7f;
+      GB.serial_timeout = 0;
+      gb_hw_interrupt(IF_SERIAL, 1);
+      gb_hw_interrupt(IF_SERIAL, 0);
+      return;
+    }
+
+    /* Timeout expired — peer unresponsive, fall back to 0xFF */
+    if (GB.serial_timeout <= 0) {
       R_SB = 0xFF;
       R_SC &= 0x7f;
-      GB.serial = 0;
+      GB.serial_timeout = 0;
       gb_hw_interrupt(IF_SERIAL, 1);
       gb_hw_interrupt(IF_SERIAL, 0);
     }
