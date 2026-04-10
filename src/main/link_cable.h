@@ -28,6 +28,10 @@ void link_cable_deinit(void);
 link_state_t link_cable_get_state(void);
 const char*  link_cable_get_status_text(void);
 
+/* ---- Pause synchronization ---- */
+void link_cable_send_pause(bool paused);
+bool link_cable_is_remote_paused(void);
+
 /* ---- Per-frame update (keepalive + discovery tick) ---- */
 void link_cable_update(void);
 

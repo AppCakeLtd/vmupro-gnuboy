@@ -195,6 +195,7 @@ void Tick() {
         }
         else {
           vmupro_resume_double_buffer_renderer();
+          link_cable_send_pause(false);
           reset_frame_time();
           lastTime             = vmupro_get_time_us();
           accumulated_us       = 0;
@@ -210,6 +211,7 @@ void Tick() {
           gnuboy_save_state(filepath);
 
           // Close the modal
+          link_cable_send_pause(false);
           reset_frame_time();
           lastTime             = vmupro_get_time_us();
           accumulated_us       = 0;
@@ -230,6 +232,7 @@ void Tick() {
           }
 
           // Close the modal
+          link_cable_send_pause(false);
           reset_frame_time();
           lastTime             = vmupro_get_time_us();
           accumulated_us       = 0;
@@ -241,6 +244,7 @@ void Tick() {
           lastTime       = vmupro_get_time_us();
           accumulated_us = 0;
           gnuboy_reset(true);
+          link_cable_send_pause(false);
           currentEmulatorState = EmulatorMenuState::EMULATOR_RUNNING;
         }
         else if (gbContextSelectionIndex == 3) {  // Link Cable
@@ -372,6 +376,9 @@ void Tick() {
         }
         vmupro_pause_double_buffer_renderer();
 
+        // Notify peer that we're paused
+        link_cable_send_pause(true);
+
         // Set the state to show the overlay
         currentEmulatorState = EmulatorMenuState::EMULATOR_MENU;
 
@@ -382,6 +389,12 @@ void Tick() {
 
       /* Tick the link cable (keepalive, drain rx ring) */
       link_cable_update();
+
+      /* If the remote peer has paused, wait until they resume */
+      if (link_cable_is_remote_paused()) {
+        vmupro_delay_ms(16);
+        continue;
+      }
 
       if (renderFrame) {
         video_back_buffer = vmupro_get_back_buffer();

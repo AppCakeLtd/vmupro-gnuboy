@@ -59,6 +59,7 @@ static volatile bool    g_transfer_pending = false;
 static volatile bool    g_rx_ready         = false;
 static volatile uint8_t g_rx_byte          = 0xFF;
 static volatile uint8_t g_slave_sb         = 0xFF;
+static volatile bool    g_remote_paused    = false;
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
@@ -128,11 +129,18 @@ static void process_packet(const uint8_t *mac, const link_packet_t *pkt) {
             /* Just a keepalive — rx_time updated below */
             break;
 
+        case LINK_PKT_PAUSE:
+            if (g_state == LINK_STATE_CONNECTED && memcmp(mac, g_peer_mac, 6) == 0) {
+                g_remote_paused = (pkt->payload != 0);
+            }
+            break;
+
         case LINK_PKT_DISCONNECT:
             if (g_state == LINK_STATE_CONNECTED && memcmp(mac, g_peer_mac, 6) == 0) {
                 g_state            = LINK_STATE_IDLE;
                 g_transfer_pending = false;
                 g_rx_ready         = false;
+                g_remote_paused    = false;
             }
             break;
     }
@@ -200,6 +208,7 @@ void link_cable_deinit(void) {
     g_state            = LINK_STATE_IDLE;
     g_transfer_pending = false;
     g_rx_ready         = false;
+    g_remote_paused    = false;
     g_rx_ring          = NULL;
 
     vmupro_peernet_deinit();
@@ -219,6 +228,19 @@ const char* link_cable_get_status_text(void) {
         case LINK_STATE_CONNECTED:   return "Connected";
         default:                     return "Off";
     }
+}
+
+/* ------------------------------------------------------------------ */
+/* Public API — Pause synchronization                                  */
+/* ------------------------------------------------------------------ */
+
+void link_cable_send_pause(bool paused) {
+    if (g_state != LINK_STATE_CONNECTED) return;
+    send_packet(g_peer_mac, LINK_PKT_PAUSE, paused ? 1 : 0);
+}
+
+bool link_cable_is_remote_paused(void) {
+    return g_remote_paused;
 }
 
 /* ------------------------------------------------------------------ */
