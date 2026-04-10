@@ -7,3 +7,5 @@ src/vmupacker_debug
 src/comport.txt
 *.vmupack
 *.zip
+CLAUDE.md
+src/vmupro_screenshot*
