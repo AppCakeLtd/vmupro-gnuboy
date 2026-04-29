@@ -113,10 +113,16 @@ void Tick() {
       vmupro_blit_buffer_blended(pauseBuffer, 0, 0, 240, 240, 150);
       // We'll only use our front buffer for this to simplify things
       int startY = 50;
-      vmupro_draw_fill_rect(20, 37, 220, 192, VMUPRO_COLOR_NAVY);
+
+      const int menuEntryCount =
+          inOptionsMenu ? (int)(sizeof(emuContextOptionEntries) / sizeof(emuContextOptionEntries[0]))
+                        : (int)(sizeof(emuContextEntries) / sizeof(emuContextEntries[0]));
+
+      const int rectBottom = startY + (menuEntryCount - 1) * 22 + 20 + 12;
+      vmupro_draw_fill_rect(20, 37, 220, rectBottom, VMUPRO_COLOR_NAVY);
 
       vmupro_set_font(VMUPRO_FONT_OPEN_SANS_15x18);
-      for (int x = 0; x < 6; ++x) {
+      for (int x = 0; x < menuEntryCount; ++x) {
         uint16_t fgColor = gbContextSelectionIndex == x ? VMUPRO_COLOR_NAVY : VMUPRO_COLOR_WHITE;
         uint16_t bgColor = gbContextSelectionIndex == x ? VMUPRO_COLOR_WHITE : VMUPRO_COLOR_NAVY;
         if (gbContextSelectionIndex == x) {
@@ -191,7 +197,8 @@ void Tick() {
         // Reset our frame counters otherwise the emulation
         // will run at full blast :)
         if (inOptionsMenu) {
-          inOptionsMenu = false;
+          inOptionsMenu           = false;
+          gbContextSelectionIndex = 4;  // restore cursor to "Options"
         }
         else {
           vmupro_resume_double_buffer_renderer();
@@ -261,21 +268,22 @@ void Tick() {
         }
         else if (gbContextSelectionIndex == 4) {  // Options
           // let's change a flag, let the rendered in the next iteration re-render the menu
-          inOptionsMenu = true;
+          inOptionsMenu           = true;
+          gbContextSelectionIndex = 0;
         }
         else if (gbContextSelectionIndex == 5) {  // Quit
           emuRunning = false;
         }
       }
       else if (vmupro_btn_pressed(DPad_Down)) {
-        if (gbContextSelectionIndex == 5)
+        if (gbContextSelectionIndex == menuEntryCount - 1)
           gbContextSelectionIndex = 0;
         else
           gbContextSelectionIndex++;
       }
       else if (vmupro_btn_pressed(DPad_Up)) {
         if (gbContextSelectionIndex == 0)
-          gbContextSelectionIndex = 5;
+          gbContextSelectionIndex = menuEntryCount - 1;
         else
           gbContextSelectionIndex--;
       }
